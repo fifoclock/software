@@ -1,16 +1,77 @@
-int[] myLEDArrangement = {5, 5, 2, 6};
+int[] myLEDArrangement = {6, 2, 5, 5};
+color backgroundColor = color(63, 0, 0);
+color clockColor = color(255, 0, 0);
 LEDString myString;
+Clock myClock;
 
 void setup() {
   fullScreen(P2D);
   //size(600, 400, P2D);
   noStroke();
   myString = new LEDString(myLEDArrangement);
+  myClock = new Clock(myString, clockColor);
 }
 
 void draw() {
-  background(50);
-  myString.show();
+  background(0);
+  myClock.update();
+}
+
+class Clock {
+  
+  private int lastSecond;
+  private LEDString ledString;
+  private color ledColor;
+  
+  Clock(LEDString ledString, color ledColor) {
+    this.ledString = ledString;
+    this.ledColor = ledColor;
+    lastSecond = second();
+  }
+  
+  void update() {
+    if(newSecond()) {
+      boolean[] ledState = new boolean[0];
+      
+      ledState = concat(ledState, intToBarIndicator(5, minute() % 10));
+      ledState = concat(ledState, intToBarIndicator(5, minute() / 10));
+      ledState = concat(ledState, intToBarIndicator(2, (second() % 2) * 2));
+      ledState = concat(ledState, intToBarIndicator(6, hour()));
+      
+      updateString(ledState);
+    }
+    ledString.show();
+  }
+  
+  private void updateString(boolean[] ledState) {
+    for(int i = 0; i < ledState.length; i++) {
+      if(ledState[i]) {
+        ledString.setPixelColor(i, ledColor);
+      } else {
+        ledString.setPixelColor(i, backgroundColor);
+      }
+    }
+  }
+  
+  boolean[] intToBarIndicator(int size, int num) {
+    boolean[] indicator = new boolean[size];
+    
+    int first = (num <= size) ? 0 : num - size;
+    int last = (num <= size) ? num : size;
+    
+    for(int i = first; i < last; i++) {
+      indicator[i] = true;
+    }
+    return indicator;
+  }
+  
+  private boolean newSecond() {
+   if(second() != lastSecond){
+     lastSecond = second();
+     return true;
+   }
+   return false;
+  }
 }
 
 class LEDString {
@@ -21,12 +82,12 @@ class LEDString {
   LEDString(int[] cols) {
     int xOffset = width/(cols.length + 1);
     int yOffset = height/(max(cols));
-    int ledWidth = min(xOffset, yOffset)/2;
+    int ledWidth = min(xOffset, yOffset)/8;
     ledString = new LED[sum(cols)];
     
     int stringIndex = 0;
-    for(int i = 0; i < cols.length; i++){
-      int xPos = width - xOffset * (i + 1);
+    for(int i = cols.length - 1 ; i >= 0; i--){
+      int xPos = xOffset * (i + 1);
       int yPos = (height + (cols[i] - 1) * yOffset)/2;
       
       for(int j = 0; j < cols[i]; j++) {
@@ -41,12 +102,20 @@ class LEDString {
      l.show();
   }
   
+  void setPixelColor(int index, color c) {
+    ledString[index].setColor(c);
+  }
   
+  void fill(color c, int index, int count) {
+    for(int i = index; i < i + count; i++) {
+      ledString[i].setColor(c);
+    }
+  }
 }
 
 class LED {
   private int x, y, size;
-  private color c = color(50, 50, 200);
+  private color c = color(0, 0, 256);
   private boolean enabled = true;
  
   // x and y are the position of the center of the led relative to the top-left corner, and size is the side length of the led
@@ -62,7 +131,10 @@ class LED {
       square(x - size/2, y-size/2, size);
     }
   }
-  
+
+  void setColor(color c) {
+    this.c = c;
+  }
 }
 
 int sum(int[] array) {
