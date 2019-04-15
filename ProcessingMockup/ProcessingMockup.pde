@@ -1,5 +1,5 @@
-int[] myLEDArrangement = {6, 2, 5, 5};
-color backgroundColor = color(63, 0, 0);
+int[] myLEDArrangement = {6, 3, 5};
+color dimColor = color(127, 0, 0);
 color clockColor = color(255, 0, 0);
 LEDString myString;
 Clock myClock;
@@ -9,7 +9,7 @@ void setup() {
   //size(600, 400, P2D);
   noStroke();
   myString = new LEDString(myLEDArrangement);
-  myClock = new Clock(myString, clockColor);
+  myClock = new Clock(myString, clockColor, dimColor, new NormalTime());
 }
 
 void draw() {
@@ -22,21 +22,24 @@ class Clock {
   private int lastSecond;
   private LEDString ledString;
   private color ledColor;
+  private color dimLedColor;
+  private Time  myTime;
   
-  Clock(LEDString ledString, color ledColor) {
+  Clock(LEDString ledString, color ledColor, color dimLedColor, Time myTime) {
     this.ledString = ledString;
     this.ledColor = ledColor;
-    lastSecond = second();
+    this.dimLedColor = dimLedColor;
+    this.myTime = myTime;
+    lastSecond = myTime.second();
   }
   
   void update() {
     if(newSecond()) {
       boolean[] ledState = new boolean[0];
       
-      ledState = concat(ledState, intToBarIndicator(5, minute() % 10));
-      ledState = concat(ledState, intToBarIndicator(5, minute() / 10));
-      ledState = concat(ledState, intToBarIndicator(2, (second() % 2) * 2));
-      ledState = concat(ledState, intToBarIndicator(6, hour()));
+      ledState = concat(ledState, intToBarIndicator(5, myTime.minute() % 10));
+      ledState = concat(ledState, intToBarIndicator(3, myTime.minute() / 10));
+      ledState = concat(ledState, intToBarIndicator(6, myTime.hour() % 12));
       
       updateString(ledState);
     }
@@ -48,12 +51,12 @@ class Clock {
       if(ledState[i]) {
         ledString.setPixelColor(i, ledColor);
       } else {
-        ledString.setPixelColor(i, backgroundColor);
+        ledString.setPixelColor(i, dimLedColor);
       }
     }
   }
   
-  boolean[] intToBarIndicator(int size, int num) {
+  private boolean[] intToBarIndicator(int size, int num) {
     boolean[] indicator = new boolean[size];
     
     int first = (num <= size) ? 0 : num - size;
@@ -66,8 +69,8 @@ class Clock {
   }
   
   private boolean newSecond() {
-   if(second() != lastSecond){
-     lastSecond = second();
+   if(myTime.second() != lastSecond){
+     lastSecond = myTime.second();
      return true;
    }
    return false;
@@ -82,7 +85,7 @@ class LEDString {
   LEDString(int[] cols) {
     int xOffset = width/(cols.length + 1);
     int yOffset = height/(max(cols));
-    int ledWidth = min(xOffset, yOffset)/8;
+    int ledWidth = min(xOffset, yOffset)/3;
     ledString = new LED[sum(cols)];
     
     int stringIndex = 0;
@@ -116,7 +119,6 @@ class LEDString {
 class LED {
   private int x, y, size;
   private color c = color(0, 0, 256);
-  private boolean enabled = true;
  
   // x and y are the position of the center of the led relative to the top-left corner, and size is the side length of the led
   LED(int x, int y, int size) {
@@ -126,10 +128,8 @@ class LED {
   }
   
   void show() {
-    if(enabled) {
-      fill(c);
-      square(x - size/2, y-size/2, size);
-    }
+    fill(c);
+    square(x - size/2, y-size/2, size);
   }
 
   void setColor(color c) {
@@ -142,4 +142,51 @@ int sum(int[] array) {
   for(int i : array)
     sum += i;
   return sum;
+}
+
+interface Time {
+  int second();
+  int minute();
+  int hour();
+}
+
+class FastTime implements Time{
+  
+  int speed;
+  
+  FastTime(int speed) {
+    this.speed = speed;
+  }
+  
+  int second() {
+    return millis()*speed/1000%60;
+  }
+  
+  int minute() {
+    return millis()*speed/1000/60%60;
+  }
+  
+  int hour() {
+    return millis()*speed/1000/60/60%24;
+  }
+  
+}
+
+class NormalTime implements Time {
+  
+  NormalTime() {
+  }
+  
+  int second() {
+    return PApplet.second();
+  }
+  
+  int minute() {
+    return PApplet.minute();
+  }
+  
+  int hour() {
+    return PApplet.hour();
+  }
+  
 }
