@@ -8,6 +8,7 @@ void setup() {
   fullScreen(P2D);
   //size(600, 400, P2D);
   noStroke();
+  noCursor();
   myString = new LEDString(myLEDArrangement);
   myClock = new Clock(myString, clockColor, dimColor, new NormalTime());
 }
